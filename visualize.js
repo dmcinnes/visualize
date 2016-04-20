@@ -78,9 +78,11 @@ lastFrame = 0;
 
 var tick = function (timestamp) {
   elapsed = timestamp - lastFrame;
-  lastFrame = timestamp;
-  step(elapsed);
-  render();
+  if (elapsed > 20) { // cap at 30 FPS
+    lastFrame = timestamp;
+    step(elapsed);
+    render();
+  }
 
   requestAnimationFrame(tick);
 };
