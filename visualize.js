@@ -99,8 +99,10 @@ var step = function (delta) {
 window.onload = function() {
   var canvas = document.getElementById('canvas');
 
-  stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
-  document.body.appendChild(stats.dom);
+  if (document.location.search === "?fps=1") {
+    stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+    document.body.appendChild(stats.dom);
+  }
 
   context = canvas.getContext('2d');
   context.canvas.width  = window.innerWidth;
