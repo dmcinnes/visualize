@@ -1,7 +1,6 @@
 var stats = new Stats();
 
 var context;
-var offset = 0;
 
 var WAVE_COUNT = 20;
 
@@ -29,16 +28,20 @@ for (var i = 0; i < WAVE_COUNT; i++) {
 
 var render = function () {
   stats.begin();
-  var width = context.canvas.width;
+  var width  = context.canvas.width;
   var height = context.canvas.height;
+  var halfHeight = height / 2;
   context.clearRect(0, 0, width, height);
   for (var i = 0; i < WAVE_COUNT; i++) {
     var wave = waves[i];
-    for (var x = 0; x < width; x++) {
-      var y = (height/2) - wave.calc(x) * wave.amplitude + wave.offset;
-      context.fillStyle = 'lightgray';
-      context.fillRect(x, y, 3, 3);
+    context.beginPath();
+    var y = halfHeight - wave.calc(x) * wave.amplitude + wave.offset;
+    context.moveTo(0, y);
+    for (var x = 1; x < width; x++) {
+      y = halfHeight - wave.calc(x) * wave.amplitude + wave.offset;
+      context.lineTo(x, y);
     }
+    context.stroke();
   }
   stats.end();
 };
@@ -73,8 +76,8 @@ window.onload = function() {
   context = canvas.getContext('2d');
   context.canvas.width  = window.innerWidth;
   context.canvas.height = window.innerHeight;
+  context.strokeStyle = 'lightgray';
   context.lineWidth = 3;
-  context.fillStyle = 'black';
 
   requestAnimationFrame(tick);
 };
