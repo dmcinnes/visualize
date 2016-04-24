@@ -6,6 +6,7 @@ var FORCE_SCALE = 0.001;
 var context;
 var width, height, boundingBox, centerX, centerY, mouseX, mouseY;
 var colorPosition = 0;
+var nextColor = 0;
 
 var voronoi = new Voronoi();
 var diagram;
@@ -134,7 +135,14 @@ var tick = function (timestamp) {
 };
 
 var step = function (delta) {
-  colorPosition = (colorPosition + (delta/100)) % 256;
+  if (Math.abs(colorPosition - nextColor) < 2) {
+    nextColor = randomNumber(255);
+  } else if (colorPosition < nextColor) {
+    colorPosition = (colorPosition + (delta/100)) % 256;
+  } else {
+    colorPosition = (colorPosition - (delta/100)) % 256;
+  }
+
   for (var i = 0; i < points.length; i++) {
     var point = points[i];
     point.mouse = false;
