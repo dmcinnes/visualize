@@ -4,7 +4,7 @@ var maxForceDistance = 350;
 var FORCE_SCALE = 0.001;
 
 var context;
-var width, height, boundingBox, centerX, centerY;
+var width, height, boundingBox, centerX, centerY, mouseX, mouseY;
 
 var voronoi = new Voronoi();
 var diagram;
@@ -33,6 +33,13 @@ var setupPoints = function () {
   }
 };
 
+var setupMouse = function () {
+  document.onmousemove = function (event) {
+    mouseX = event.pageX;
+    mouseY = event.pageY;
+  }
+};
+
 var addNewPoint = function () {
   var totalPoints = points.length;
   if (totalPoints < 100) {
@@ -56,32 +63,11 @@ var addNewPoint = function () {
 };
 
 var render = function () {
-  var i, j, length, cell, halfedgesLength, hue, edge;
+  var i, j, length, cell, halfedgesLength, hue, edge, value;
   stats.begin();
   context.clearRect(0, 0, width, height);
 
-  context.lineWidth = 3;
   length = diagram.cells.length;
-  for (i = 0; i < length; i++) {
-    cell = diagram.cells[i];
-    var value = 20 + Math.min(60, cell.site.strength);
-    context.strokeStyle = "hsl(120, 100%, "+value+"%)";
-    // var hue = 255 - Math.min(254, cell.site.strength*15);
-    // context.strokeStyle = "hsl("+hue+", 100%, 60%)";
-    halfedgesLength = cell.halfedges.length;
-    for (j = 0; j < halfedgesLength; j++) {
-      edge = cell.halfedges[j].edge;
-
-      context.beginPath();
-      context.moveTo(cell.site.x, cell.site.y);
-      context.lineTo(edge.va.x, edge.va.y);
-      context.stroke();
-      context.beginPath();
-      context.moveTo(cell.site.x, cell.site.y);
-      context.lineTo(edge.vb.x, edge.vb.y);
-      context.stroke();
-    }
-  }
 
   for (i = 0; i < length; i++) {
     cell = diagram.cells[i];
@@ -90,14 +76,19 @@ var render = function () {
     // var hue = 255 - Math.min(254, cell.site.strength*15);
     // context.fillStyle = "hsl("+hue+", 100%, 60%)";
     halfedgesLength = cell.halfedges.length;
-    for (j = 0; j < halfedgesLength; j++) {
-      edge = cell.halfedges[j].edge;
-      context.beginPath();
-      context.moveTo(cell.site.x, cell.site.y);
-      context.lineTo(edge.va.x, edge.va.y);
-      context.lineTo(edge.vb.x, edge.vb.y);
-      context.fill();
+    if (halfedgesLength === 0) {
+      continue;
     }
+    context.beginPath();
+    edge = cell.halfedges[0];
+    var start = edge.getStartpoint();
+    context.moveTo(start.x, start.y);
+    for (j = 1; j < halfedgesLength; j++) {
+      edge = cell.halfedges[j];
+      var start = edge.getStartpoint();
+      context.lineTo(start.x, start.y);
+    }
+    context.fill();
   }
 
   // draw the lines
