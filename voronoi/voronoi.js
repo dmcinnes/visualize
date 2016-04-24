@@ -41,25 +41,30 @@ var setupMouse = function () {
 };
 
 var addNewPoint = function () {
-  var totalPoints = points.length;
-  if (totalPoints < 100) {
-    var minPoint = {x: centerX, y: centerY};
-    var minDist  = Number.MAX_VALUE;
-    for (var i = 0; i < totalPoints; i++) {
-      var candidate = Math.sqrt(Math.pow(centerX - points[i].x, 2) + Math.pow(centerY - points[i].y, 2));
-      if (candidate === Math.min(candidate, minDist)) {
-        minDist = candidate;
-        minPoint = points[i];
-      }
-    }
+  if (points.length < 100) {
+    var spawnPoint = closestPointTo(mouseX, mouseY);
     points.push({
-      x:        minPoint.x + (Math.random() * 2) - 1,
-      y:        minPoint.y + (Math.random() * 2) - 1,
+      x:        spawnPoint.x + (Math.random() * 2) - 1,
+      y:        spawnPoint.y + (Math.random() * 2) - 1,
       forceX:   0,
       forceY:   0,
       strength: randomNumber(16) + 1
     });
   }
+};
+
+var closestPointTo = function (pointX, pointY) {
+  var minPoint = points[0];
+  var minDist  = Number.MAX_VALUE;
+  var totalPoints = points.length;
+  for (var i = 0; i < totalPoints; i++) {
+    var candidate = Math.sqrt(Math.pow(pointX - points[i].x, 2) + Math.pow(pointY - points[i].y, 2));
+    if (candidate === Math.min(candidate, minDist)) {
+      minDist = candidate;
+      minPoint = points[i];
+    }
+  }
+  return minPoint;
 };
 
 var render = function () {
@@ -71,8 +76,12 @@ var render = function () {
 
   for (i = 0; i < length; i++) {
     cell = diagram.cells[i];
-    var value = 20 + Math.min(60, cell.site.strength);
-    context.fillStyle = "hsl(120, 100%, "+value+"%)";
+    if (cell.site.mouse) {
+      context.fillStyle = "hsl(120, 100%, 60%)";
+    } else {
+      var value = 20 + Math.min(60, cell.site.strength);
+      context.fillStyle = "hsl(120, 100%, "+value+"%)";
+    }
     // var hue = 255 - Math.min(254, cell.site.strength*15);
     // context.fillStyle = "hsl("+hue+", 100%, 60%)";
     halfedgesLength = cell.halfedges.length;
@@ -124,6 +133,7 @@ var tick = function (timestamp) {
 var step = function (delta) {
   for (var i = 0; i < points.length; i++) {
     var point = points[i];
+    point.mouse = false;
     if (outsideWindow(point)) {
       // remove the point
       points.splice(i, 1);
@@ -134,6 +144,11 @@ var step = function (delta) {
   var length = points.length;
   if (length === 0) {
     return;
+  }
+
+  if (mouseX) {
+    var mousePoint = closestPointTo(mouseX, mouseY);
+    mousePoint.mouse = true;
   }
 
   for (var i = 0; i < length-1; i++) {
@@ -197,12 +212,13 @@ window.onload = function() {
   context.canvas.height = window.innerHeight;
   width  = context.canvas.width;
   height = context.canvas.height;
-  centerX = width / 2;
-  centerY = height / 2;
+  mouseX = centerX = width / 2;
+  mouseY = centerY = height / 2;
 
   boundingBox = {xl: 0, xr: width, yt: 0, yb: height};
 
   setupPoints();
+  setupMouse();
 
   requestAnimationFrame(tick);
 
