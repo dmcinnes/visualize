@@ -31,7 +31,7 @@ var setupPoints = function () {
       forceX:   0,
       forceY:   0,
       strength: randomNumber(16) + 1,
-      color:    Math.round(colorPosition + randomNumber(10)) % 256
+      color:    Math.round(colorPosition + randomNumber(10)) % 255
     });
   }
 };
@@ -52,7 +52,7 @@ var addNewPoint = function () {
       forceX:   0,
       forceY:   0,
       strength: randomNumber(16) + 1,
-      color:    Math.round(colorPosition + randomNumber(10)) % 256
+      color:    Math.round(colorPosition + randomNumber(10)) % 255
     });
   }
 };
@@ -138,9 +138,9 @@ var step = function (delta) {
   if (Math.abs(colorPosition - nextColor) < 2) {
     nextColor = randomNumber(255);
   } else if (colorPosition < nextColor) {
-    colorPosition = (colorPosition + (delta/100)) % 256;
+    colorPosition = (colorPosition + (delta/100)) % 255;
   } else {
-    colorPosition = (colorPosition - (delta/100)) % 256;
+    colorPosition = (colorPosition - (delta/100)) % 255;
   }
 
   for (var i = 0; i < points.length; i++) {
