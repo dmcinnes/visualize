@@ -5,6 +5,7 @@ var FORCE_SCALE = 0.001;
 
 var context;
 var width, height, boundingBox, centerX, centerY, mouseX, mouseY;
+var colorPosition = 0;
 
 var voronoi = new Voronoi();
 var diagram;
@@ -28,7 +29,8 @@ var setupPoints = function () {
       y:        randomNumber(height),
       forceX:   0,
       forceY:   0,
-      strength: randomNumber(16) + 1
+      strength: randomNumber(16) + 1,
+      color:    Math.round(colorPosition + randomNumber(10)) % 256
     });
   }
 };
@@ -48,7 +50,8 @@ var addNewPoint = function () {
       y:        spawnPoint.y + (Math.random() * 2) - 1,
       forceX:   0,
       forceY:   0,
-      strength: randomNumber(16) + 1
+      strength: randomNumber(16) + 1,
+      color:    Math.round(colorPosition + randomNumber(10)) % 256
     });
   }
 };
@@ -76,12 +79,12 @@ var render = function () {
 
   for (i = 0; i < length; i++) {
     cell = diagram.cells[i];
-    if (cell.site.mouse) {
-      context.fillStyle = "hsl(120, 100%, 60%)";
-    } else {
-      var value = 20 + Math.min(60, cell.site.strength);
-      context.fillStyle = "hsl(120, 100%, "+value+"%)";
-    }
+    // if (cell.site.mouse) {
+    //   context.fillStyle = "hsl(120, 100%, 60%)";
+    // } else {
+      // var value = 20 + Math.min(60, cell.site.strength);
+      context.fillStyle = "hsl("+cell.site.color+", 100%, 50%)";
+    // }
     // var hue = 255 - Math.min(254, cell.site.strength*15);
     // context.fillStyle = "hsl("+hue+", 100%, 60%)";
     halfedgesLength = cell.halfedges.length;
@@ -131,6 +134,7 @@ var tick = function (timestamp) {
 };
 
 var step = function (delta) {
+  colorPosition = (colorPosition + (delta/100)) % 256;
   for (var i = 0; i < points.length; i++) {
     var point = points[i];
     point.mouse = false;
