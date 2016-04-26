@@ -1,30 +1,81 @@
 var stats = new Stats();
 
 var TAU = Math.PI * 2;
+var WIGGLE = 10;
 
 var context;
 var width, height;
 
 var clouds = [];
 
-var setupClumps = function () {
+// A simple Linear Congruential Generator
+
+// Establish the parameters of the generator
+var m = 25;
+// a - 1 should be divisible by m's prime factors
+var a = 11;
+// c and m should be co-prime
+var c = 17;
+// Setting the seed
+var seed = 3;
+
+var rand = function() {
+  // define the recurrence relationship
+  seed = (a * seed + c) % m;
+  // return float in (0, 1)
+  return seed / m;
+};
+
+var constrainCircle = function (circle) {
+  if (circle.x - circle.radius < 0) {
+    circle.x = circle.radius;
+  } else if (circle.x + circle.radius > width) {
+    circle.x = width - circle.radius;
+  }
+  if (circle.y - circle.radius < 0) {
+    circle.y = circle.radius;
+  } else if (circle.y + circle.radius > height) {
+    circle.y = height - circle.radius;
+  }
+  return circle;
+};
+
+var setupClouds = function () {
   var circles = [];
-  circles.push({
-    x: 800,
-    y: 400,
-    radius: 300,
+  var startX = 2 * (width / 3);
+  var startY = height / 2;
+  // var startRad = 100 + (Math.random() * height)/4;
+  var startRad = 300;
+  if (startRad > height/2) {
+    startRad = height/2 - 20;
+  }
+  var circle = {
+    x: startX,
+    y: startY,
+    radius: startRad,
     points: []
-  });
-  circles.push({
-    x: 400,
-    y: 500,
-    radius: 200,
-    points: []
-  });
+  };
+  circles.push(constrainCircle(circle));
+  // var count = Math.round(Math.random() * 4 + 3)
+  // for (var i = 0; i < count; i++) {
+  //   circle = {
+  //     x: Math.cos(Math.random() * TAU) * startRad + startX,
+  //     y: Math.sin(Math.random() * TAU) * startRad + startY,
+  //     radius: 100 + (Math.random() * height)/2,
+  //     points: []
+  //   };
+  //   circles.push(constrainCircle(circle));
+  // }
   circles.push({
     x: 600,
-    y: 300,
+    y: 500,
     radius: 250,
+    points: []
+  });
+  circles.push({
+    x: 700,
+    y: 200,
+    radius: 180,
     points: []
   });
   var cuspPoints = [];
@@ -34,8 +85,8 @@ var setupClumps = function () {
   var segments = currentCircle.radius / 5;
   var increment = TAU / segments;
   for (var i = 0; i < segments; i++) {
-    var x = Math.cos(i * increment) * currentCircle.radius;
-    var y = Math.sin(i * increment) * currentCircle.radius;
+    var x = Math.cos(i * increment) * currentCircle.radius + (Math.random() * WIGGLE - WIGGLE/2);
+    var y = Math.sin(i * increment) * currentCircle.radius + (Math.random() * WIGGLE - WIGGLE/2);
     var outside = true;
     for (var j = 0; j < circles.length; j++) {
       var candidate = circles[j];
@@ -67,7 +118,8 @@ var setupClumps = function () {
   clouds.push({
     circles:    circles,
     cuspPoints: cuspPoints,
-    points:     points
+    points:     points,
+    seed:       Math.round(Math.random() * 128)
   });
 };
 
@@ -79,21 +131,38 @@ var render = function () {
   var length = clouds.length;
   for (var i = 0; i < length; i++) {
     var cloud = clouds[i];
+    context.save();
+    context.scale(0.6, 0.6);
+    seed = cloud.seed;
     context.beginPath();
-    var point = cloud.points[0];
-    context.moveTo(point.x, point.y);
+    var lastPoint = cloud.points[0];
+    context.moveTo(lastPoint.x, lastPoint.y);
     for (var j = 1; j < cloud.points.length; j++) {
-      point = cloud.points[j];
-      context.lineTo(point.x, point.y);
-      context.fillRect(point.x - 1, point.y - 1, 2, 2);
+      var point = cloud.points[j];
+      var midpointX = (point.x + lastPoint.x)/2;
+      var midpointY = (point.y + lastPoint.y)/2;
+      context.bezierCurveTo(
+        midpointX + (rand() * 40 - 20), midpointY + (rand() * 40 - 20),
+        midpointX + (rand() * 40 - 20), midpointY + (rand() * 40 - 20),
+        point.x + (rand() * 10 - 5), point.y + (rand() * 10 - 5));
+      context.moveTo(point.x, point.y);
+      // context.fillRect(point.x - 1, point.y - 1, 2, 2);
+      lastPoint = point;
     }
-    context.closePath();
+    point = cloud.points[0];
+    midpointX = (point.x + lastPoint.x)/2;
+    midpointY = (point.y + lastPoint.y)/2;
+    context.bezierCurveTo(
+      midpointX + (rand() * 20 - 10), midpointY + (rand() * 20 - 10),
+      midpointX + (rand() * 20 - 10), midpointY + (rand() * 20 - 10),
+      point.x, point.y);
     context.stroke();
-    for (var j = 0; j < cloud.cuspPoints.length; j++) {
-      point = cloud.cuspPoints[j];
-      context.fillStyle = 'green';
-      context.fillRect(point.x - 2, point.y - 2, 5, 5);
-    }
+    context.restore();
+    // for (var j = 0; j < cloud.cuspPoints.length; j++) {
+    //   point = cloud.cuspPoints[j];
+    //   context.fillStyle = 'green';
+    //   context.fillRect(point.x - 2, point.y - 2, 5, 5);
+    // }
   }
 
   stats.end();
@@ -128,7 +197,7 @@ window.onload = function() {
   width  = context.canvas.width;
   height = context.canvas.height;
 
-  setupClumps();
+  setupClouds();
 
   requestAnimationFrame(tick);
 };
