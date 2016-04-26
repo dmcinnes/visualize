@@ -1,7 +1,7 @@
 var stats = new Stats();
 
 var TAU = Math.PI * 2;
-var WIGGLE = 10;
+var WIGGLE = 0;
 
 var context;
 var width, height;
@@ -26,65 +26,49 @@ var rand = function() {
   return seed / m;
 };
 
-var constrainCircle = function (circle) {
-  if (circle.x - circle.radius < 0) {
-    circle.x = circle.radius;
-  } else if (circle.x + circle.radius > width) {
-    circle.x = width - circle.radius;
+var setupClouds = function () {
+  for (var i = 0; i < 5; i++) {
+    createCloud();
   }
-  if (circle.y - circle.radius < 0) {
-    circle.y = circle.radius;
-  } else if (circle.y + circle.radius > height) {
-    circle.y = height - circle.radius;
-  }
-  return circle;
 };
 
-var setupClouds = function () {
+var createCloud = function () {
   var circles = [];
-  var startX = 2 * (width / 3);
-  var startY = height / 2;
-  // var startRad = 100 + (Math.random() * height)/4;
-  var startRad = 300;
-  if (startRad > height/2) {
-    startRad = height/2 - 20;
+  circles.push({
+    x: 0,
+    y: 0,
+    radius: 180 + Math.random() * 10,
+    points: []
+  });
+  var nextX = -circles[0].radius - Math.random() * 20;
+  circles.push({
+    x: nextX,
+    y: 0,
+    radius: 140 + Math.random() * 10,
+    points: []
+  });
+  circles.push({
+    x: nextX / 2,
+    y: - (150 - Math.round(Math.random() * 50)),
+    radius: 100 + Math.random() * 10 - 5,
+    points: []
+  });
+  var scale = 0.8 + Math.random();
+  for (var i = 0; i < circles.length; i++) {
+    var circle = circles[i];
+    circle.x      *= scale;
+    circle.y      *= scale;
+    circle.radius *= scale;
   }
-  var circle = {
-    x: startX,
-    y: startY,
-    radius: startRad,
-    points: []
-  };
-  circles.push(constrainCircle(circle));
-  // var count = Math.round(Math.random() * 4 + 3)
-  // for (var i = 0; i < count; i++) {
-  //   circle = {
-  //     x: Math.cos(Math.random() * TAU) * startRad + startX,
-  //     y: Math.sin(Math.random() * TAU) * startRad + startY,
-  //     radius: 100 + (Math.random() * height)/2,
-  //     points: []
-  //   };
-  //   circles.push(constrainCircle(circle));
-  // }
-  circles.push({
-    x: 600,
-    y: 500,
-    radius: 250,
-    points: []
-  });
-  circles.push({
-    x: 700,
-    y: 200,
-    radius: 180,
-    points: []
-  });
   var cuspPoints = [];
   var points = [];
   var start = 0;
   var currentCircle = circles[0];
-  var segments = currentCircle.radius / 5;
+  var segments = currentCircle.radius / 2;
   var increment = TAU / segments;
-  for (var i = 0; i < segments; i++) {
+  var i = 0;
+  // do until we're back on the first circle and run out of segments
+  while (i < segments || currentCircle != circles[0]) {
     var x = Math.cos(i * increment) * currentCircle.radius + (Math.random() * WIGGLE - WIGGLE/2);
     var y = Math.sin(i * increment) * currentCircle.radius + (Math.random() * WIGGLE - WIGGLE/2);
     var outside = true;
@@ -100,7 +84,7 @@ var setupClouds = function () {
         cuspPoints.push({ x: x + currentCircle.x, y: y + currentCircle.y });
         // points.push({ x: x + currentCircle.x, y: y + currentCircle.y });
         currentCircle = candidate;
-        segments = currentCircle.radius / 5;
+        segments = currentCircle.radius / 2;
         increment = TAU / segments;
         i = Math.round(segments * Math.atan2(translateY, translateX) / TAU);
         if (i < 0) {
@@ -114,8 +98,11 @@ var setupClouds = function () {
       currentCircle.points.push({ x: x, y: y });
       points.push({ x: x + currentCircle.x, y: y + currentCircle.y });
     }
+    i++;
   }
   clouds.push({
+    x:          Math.random() * width,
+    y:          height - Math.max(circles[0].radius, circles[1].radius) - 50,
     circles:    circles,
     cuspPoints: cuspPoints,
     points:     points,
@@ -132,7 +119,14 @@ var render = function () {
   for (var i = 0; i < length; i++) {
     var cloud = clouds[i];
     context.save();
-    context.scale(0.6, 0.6);
+    context.translate(cloud.x, cloud.y);
+    context.fillStyle = 'white';
+    for (var j = 0; j < cloud.circles.length; j++) {
+      var circle = cloud.circles[j];
+      context.beginPath();
+      context.arc(circle.x, circle.y, circle.radius, 0, TAU);
+      context.fill();
+    }
     seed = cloud.seed;
     context.beginPath();
     var lastPoint = cloud.points[0];
@@ -142,19 +136,18 @@ var render = function () {
       var midpointX = (point.x + lastPoint.x)/2;
       var midpointY = (point.y + lastPoint.y)/2;
       context.bezierCurveTo(
-        midpointX + (rand() * 40 - 20), midpointY + (rand() * 40 - 20),
-        midpointX + (rand() * 40 - 20), midpointY + (rand() * 40 - 20),
+        midpointX + (rand() * 10 - 5), midpointY + (rand() * 10 - 5),
+        midpointX + (rand() * 10 - 5), midpointY + (rand() * 10 - 5),
         point.x + (rand() * 10 - 5), point.y + (rand() * 10 - 5));
       context.moveTo(point.x, point.y);
-      // context.fillRect(point.x - 1, point.y - 1, 2, 2);
       lastPoint = point;
     }
     point = cloud.points[0];
     midpointX = (point.x + lastPoint.x)/2;
     midpointY = (point.y + lastPoint.y)/2;
     context.bezierCurveTo(
-      midpointX + (rand() * 20 - 10), midpointY + (rand() * 20 - 10),
-      midpointX + (rand() * 20 - 10), midpointY + (rand() * 20 - 10),
+      midpointX + (rand() * 10 - 5), midpointY + (rand() * 10 - 5),
+      midpointX + (rand() * 10 - 5), midpointY + (rand() * 10 - 5),
       point.x, point.y);
     context.stroke();
     context.restore();
