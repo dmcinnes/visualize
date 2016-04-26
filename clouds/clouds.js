@@ -1,7 +1,12 @@
 var stats = new Stats();
 
 var TAU = Math.PI * 2;
-var WIGGLE = 0;
+
+// how much to move the segments around
+var WIGGLE = 10;
+
+// the length of the segment in relation to the circle's radius
+var SEGMENT_FACTOR = 2;
 
 var context;
 var width, height;
@@ -64,13 +69,13 @@ var createCloud = function () {
   var points = [];
   var start = 0;
   var currentCircle = circles[0];
-  var segments = currentCircle.radius / 2;
+  var segments = currentCircle.radius / SEGMENT_FACTOR;
   var increment = TAU / segments;
   var i = 0;
   // do until we're back on the first circle and run out of segments
   while (i < segments || currentCircle != circles[0]) {
-    var x = Math.cos(i * increment) * currentCircle.radius + (Math.random() * WIGGLE - WIGGLE/2);
-    var y = Math.sin(i * increment) * currentCircle.radius + (Math.random() * WIGGLE - WIGGLE/2);
+    var x = Math.cos(i * increment) * currentCircle.radius;
+    var y = Math.sin(i * increment) * currentCircle.radius;
     var outside = true;
     for (var j = 0; j < circles.length; j++) {
       var candidate = circles[j];
@@ -84,7 +89,7 @@ var createCloud = function () {
         cuspPoints.push({ x: x + currentCircle.x, y: y + currentCircle.y });
         // points.push({ x: x + currentCircle.x, y: y + currentCircle.y });
         currentCircle = candidate;
-        segments = currentCircle.radius / 2;
+        segments = currentCircle.radius / SEGMENT_FACTOR;
         increment = TAU / segments;
         i = Math.round(segments * Math.atan2(translateY, translateX) / TAU);
         if (i < 0) {
@@ -136,18 +141,18 @@ var render = function () {
       var midpointX = (point.x + lastPoint.x)/2;
       var midpointY = (point.y + lastPoint.y)/2;
       context.bezierCurveTo(
-        midpointX + (rand() * 10 - 5), midpointY + (rand() * 10 - 5),
-        midpointX + (rand() * 10 - 5), midpointY + (rand() * 10 - 5),
-        point.x + (rand() * 10 - 5), point.y + (rand() * 10 - 5));
-      context.moveTo(point.x, point.y);
+        midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
+        midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
+        point.x + (rand() * WIGGLE - WIGGLE/2), point.y + (rand() * WIGGLE - WIGGLE/2));
+      context.moveTo(point.x + (rand() * WIGGLE - WIGGLE/2), point.y + (rand() * WIGGLE - WIGGLE/2));
       lastPoint = point;
     }
     point = cloud.points[0];
     midpointX = (point.x + lastPoint.x)/2;
     midpointY = (point.y + lastPoint.y)/2;
     context.bezierCurveTo(
-      midpointX + (rand() * 10 - 5), midpointY + (rand() * 10 - 5),
-      midpointX + (rand() * 10 - 5), midpointY + (rand() * 10 - 5),
+      midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
+      midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
       point.x, point.y);
     context.stroke();
     context.restore();
