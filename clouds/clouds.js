@@ -1,5 +1,7 @@
 var stats = new Stats();
 
+var DIRECTION = Math.random() < 0.5 ? -1 : 1;
+
 var TAU = Math.PI * 2;
 
 var CLOUD_COUNT = 5;
@@ -44,8 +46,18 @@ var setupClouds = function () {
   }
   // sort by highest point on the screen
   clouds.sort(function (c1, c2) {
-    return c1.bounds.top + c1.y - c2.bounds.top + c2.y;
+    return (c1.bounds.top + c1.y) - (c2.bounds.top + c2.y);
   });
+  var vels = [];
+  for (i = 0; i < CLOUD_COUNT; i++) {
+    vels.push(5 + Math.random() * 20);
+  }
+  vels.sort(function (a, b) {
+    return a - b;
+  });
+  for (i = 0; i < CLOUD_COUNT; i++) {
+    clouds[i].velX = vels[i];
+  }
 };
 
 var createCloudCircle = function (x, y) {
@@ -273,6 +285,10 @@ var tick = function (timestamp) {
 };
 
 var step = function (delta) {
+  for (var i = 0; i < clouds.length; i++) {
+    var cloud = clouds[i];
+    cloud.x += cloud.velX * delta / 1000;
+  }
 };
 
 window.onload = function() {
