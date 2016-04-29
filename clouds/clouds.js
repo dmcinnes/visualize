@@ -136,7 +136,6 @@ var generateCircles = function (legs) {
 };
 
 var traceCircles = function (circles) {
-  var cuspPoints = [];
   var points = [];
   var start = 0;
   var currentCircle = circles[0];
@@ -157,8 +156,8 @@ var traceCircles = function (circles) {
       var translateY = currentCircle.y + y - candidate.y;
       var dist = Math.sqrt(translateX * translateX + translateY * translateY);
       if (dist < candidate.radius) {
-        cuspPoints.push({ x: x + currentCircle.x, y: y + currentCircle.y });
-        // points.push({ x: x + currentCircle.x, y: y + currentCircle.y });
+        currentCircle.points.push({ x: x, y: y, cusp: true });
+        points.push({ x: x + currentCircle.x, y: y + currentCircle.y, cusp: true });
         currentCircle = candidate;
         segments = currentCircle.radius / SEGMENT_FACTOR;
         increment = TAU / segments;
@@ -229,6 +228,9 @@ var render = function () {
     context.moveTo(lastPoint.x, lastPoint.y);
     for (var j = 1; j < cloud.points.length; j++) {
       var point = cloud.points[j];
+      if (point.cusp) {
+        continue;
+      }
       var midpointX = (point.x + lastPoint.x)/2;
       var midpointY = (point.y + lastPoint.y)/2;
       context.bezierCurveTo(
@@ -246,11 +248,6 @@ var render = function () {
       point.x, point.y);
     context.stroke();
     context.restore();
-    // for (var j = 0; j < cloud.cuspPoints.length; j++) {
-    //   point = cloud.cuspPoints[j];
-    //   context.fillStyle = 'green';
-    //   context.fillRect(point.x - 2, point.y - 2, 5, 5);
-    // }
   }
 
   stats.end();
