@@ -44,7 +44,7 @@ var setupClouds = function () {
   }
   // sort by highest point on the screen
   clouds.sort(function (c1, c2) {
-    return c1.minY + c1.y - c2.minY + c2.y;
+    return c1.bounds.top + c1.y - c2.bounds.top + c2.y;
   });
 };
 
@@ -184,11 +184,19 @@ var createCloud = function () {
   var circles = generateCircles(legs);
   var points  = traceCircles(circles);
 
-  var minY = 0;
-  var maxY = 0;
+  var bounds = {
+    top:    0,
+    bottom: 0,
+    left:   0,
+    right:  0
+  };
+
+  // calculate bounding box
   for (var i = 0; i < points.length; i++) {
-    minY = Math.min(minY, points[i].y);
-    maxY = Math.max(maxY, points[i].y);
+    bounds.top    = Math.min(bounds.top,    points[i].y);
+    bounds.bottom = Math.max(bounds.bottom, points[i].y);
+    bounds.left   = Math.min(bounds.left,   points[i].x);
+    bounds.right  = Math.max(bounds.right,  points[i].x);
   }
 
   var x = Math.random() * width;
@@ -197,8 +205,7 @@ var createCloud = function () {
   return {
     x:          x,
     y:          y,
-    minY:       minY,
-    maxY:       maxY,
+    bounds:     bounds,
     circles:    circles,
     legs:       legs,
     points:     points,
