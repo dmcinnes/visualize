@@ -2,6 +2,7 @@ var stats = new Stats();
 
 var TAU = Math.PI * 2;
 
+var CLOUD_COUNT = 5;
 // how much to wiggle the points around
 var POINT_WIGGLE = 10;
 // how much to wiggle the curves around
@@ -38,39 +39,88 @@ var wiggle = function (size) {
 };
 
 var setupClouds = function () {
-  for (var i = 0; i < 5; i++) {
+  for (var i = 0; i < CLOUD_COUNT; i++) {
     createCloud();
   }
 };
 
-var createCloud = function () {
+var createCloudCircle = function (x, y) {
+  return {
+    x: x,
+    y: y,
+    radius: (height / 5) + wiggle(height/6),
+    points: []
+  };
+};
+
+var generateTriange = function () {
+  var h = (height / 4) + wiggle(30);
+  var base = (2 * height / 5) + wiggle(30);
+  var top   = {x: 0, y: -h};
+  var left  = {x: -base/2 + wiggle(base/5), y: 0};
+  var right = {x: base + left.x, y: 0};
+  // start on the right to match our line drawing starting point
+  return [
+    {
+      start: right,
+      end: left,
+      distance: right.x - left.x,
+      circles: []
+    },
+    {
+      start: left,
+      end: top,
+      distance: Math.sqrt(left.x*left.x + h*h),
+      circles: []
+    },
+    {
+      start: top,
+      end: right,
+      distance: Math.sqrt(right.x*right.x + h*h),
+      circles: []
+    }
+  ];
+};
+
+var generateCircles = function (legs) {
   var circles = [];
-  circles.push({
-    x: 0,
-    y: 0,
-    radius: 180 + Math.random() * 10,
-    points: []
-  });
-  var nextX = -circles[0].radius - Math.random() * 20;
-  circles.push({
-    x: nextX,
-    y: 0,
-    radius: 140 + Math.random() * 10,
-    points: []
-  });
-  circles.push({
-    x: nextX / 2,
-    y: - (150 - Math.round(Math.random() * 50)),
-    radius: 100 + Math.random() * 10 - 5,
-    points: []
-  });
-  var scale = 0.8 + Math.random();
-  for (var i = 0; i < circles.length; i++) {
-    var circle = circles[i];
-    circle.x      *= scale;
-    circle.y      *= scale;
-    circle.radius *= scale;
+  var startCircle = createCloudCircle(legs[0].start.x, legs[0].start.y);
+  circles.push(startCircle);
+
+  for (var i = 0; i < legs.length; i++) {
+    var leg = legs[i];
+    var endCircle;
+    leg.circles.push(startCircle);
+    if (i == legs.length-1) {
+      endCircle = legs[0].circles[0];
+    } else {
+      endCircle = createCloudCircle(leg.end.x, leg.end.y);
+      circles.push(endCircle);
+    }
+    leg.circles.push(endCircle);
+    var total = startCircle.radius + endCircle.radius;
+    startCircle = endCircle;
+    // add more if needed
+    while (total < leg.distance * 2) {
+      var x = 0;
+      var y = 0;
+      for (var j = 0; j < leg.circles.length; j++) {
+        var legCircle = leg.circles[j];
+        x += legCircle.x;
+        y += legCircle.y;
+      }
+      x = x / leg.circles.length;
+      y = y / leg.circles.length;
+      var circle = createCloudCircle(x, y);
+      circles.push(circle);
+      leg.circles.push(circle);
+      total += circle.radius * 2;
+    }
   }
+  return circles;
+};
+
+var traceCircles = function (circles) {
   var cuspPoints = [];
   var points = [];
   var start = 0;
@@ -111,11 +161,20 @@ var createCloud = function () {
     }
     i++;
   }
+
+  return points;
+};
+
+var createCloud = function () {
+  var legs    = generateTriange();
+  var circles = generateCircles(legs);
+  var points  = traceCircles(circles);
+
   clouds.push({
     x:          Math.random() * width,
     y:          height - Math.max(circles[0].radius, circles[1].radius) - 50,
     circles:    circles,
-    cuspPoints: cuspPoints,
+    legs:       legs,
     points:     points,
     seed:       Math.round(Math.random() * 128)
   });
@@ -125,13 +184,12 @@ var render = function () {
   stats.begin();
   context.clearRect(0, 0, width, height);
 
-  context.fillStyle = 'blue';
+  context.fillStyle = 'white';
   var length = clouds.length;
   for (var i = 0; i < length; i++) {
     var cloud = clouds[i];
     context.save();
     context.translate(cloud.x, cloud.y);
-    context.fillStyle = 'white';
     for (var j = 0; j < cloud.circles.length; j++) {
       var circle = cloud.circles[j];
       context.beginPath();
