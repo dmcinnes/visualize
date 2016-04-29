@@ -51,7 +51,7 @@ var sortClouds = function () {
 var updateCloudSpeeds = function () {
   for (var i = 0; i < clouds.length; i++) {
     var cloud = clouds[i];
-    cloud.velX = 5 + 16 * (cloud.bounds.top + cloud.y)/height;
+    cloud.velX = DIRECTION * (5 + 10 * (cloud.bounds.top + cloud.y)/height);
   }
 };
 
