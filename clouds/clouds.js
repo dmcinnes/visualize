@@ -40,8 +40,12 @@ var wiggle = function (size) {
 
 var setupClouds = function () {
   for (var i = 0; i < CLOUD_COUNT; i++) {
-    createCloud();
+    clouds.push(createCloud());
   }
+  // sort by highest point on the screen
+  clouds.sort(function (c1, c2) {
+    return c1.minY + c1.y - c2.minY + c2.y;
+  });
 };
 
 var createCloudCircle = function (x, y) {
@@ -181,14 +185,26 @@ var createCloud = function () {
   var circles = generateCircles(legs);
   var points  = traceCircles(circles);
 
-  clouds.push({
-    x:          Math.random() * width,
-    y:          height - Math.max(circles[0].radius, circles[1].radius) - 50,
+  var minY = 0;
+  var maxY = 0;
+  for (var i = 0; i < points.length; i++) {
+    minY = Math.min(minY, points[i].y);
+    maxY = Math.max(maxY, points[i].y);
+  }
+
+  var x = Math.random() * width;
+  var y = height - Math.max(circles[0].radius, circles[1].radius) - 50;
+
+  return {
+    x:          x,
+    y:          y,
+    minY:       minY,
+    maxY:       maxY,
     circles:    circles,
     legs:       legs,
     points:     points,
     seed:       Math.round(Math.random() * 128)
-  });
+  };
 };
 
 var render = function () {
