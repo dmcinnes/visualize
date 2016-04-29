@@ -4,7 +4,7 @@ var DIRECTION = Math.random() < 0.5 ? -1 : 1;
 
 var TAU = Math.PI * 2;
 
-var CLOUD_COUNT = 5;
+var CLOUD_COUNT = 10;
 // how much to wiggle the points around
 var POINT_WIGGLE = 10;
 // how much to wiggle the curves around
@@ -40,24 +40,40 @@ var wiggle = function (size) {
   return Math.random() * size - size/2;
 };
 
+// compare by highest point on the screen
+var sortClouds = function () {
+  clouds.sort(function (c1, c2) {
+    return (c1.bounds.top + c1.y) - (c2.bounds.top + c2.y);
+  });
+};
+
+// set the cloud speeds based on vertical position
+var updateCloudSpeeds = function () {
+  for (var i = 0; i < CLOUD_COUNT; i++) {
+    var cloud = clouds[i];
+    cloud.velX = 5 + 10 * (cloud.bounds.top + cloud.y)/height;
+  }
+};
+
 var setupClouds = function () {
   for (var i = 0; i < CLOUD_COUNT; i++) {
     clouds.push(createCloud());
   }
-  // sort by highest point on the screen
-  clouds.sort(function (c1, c2) {
-    return (c1.bounds.top + c1.y) - (c2.bounds.top + c2.y);
-  });
-  var vels = [];
-  for (i = 0; i < CLOUD_COUNT; i++) {
-    vels.push(5 + Math.random() * 20);
+  sortClouds();
+  updateCloudSpeeds();
+};
+
+var addCloud = function () {
+  var cloud = createCloud();
+  if (DIRECTION < 0) {
+    cloud.x = width - cloud.bounds.left;
+  } else {
+    cloud.x = -cloud.bounds.right;
   }
-  vels.sort(function (a, b) {
-    return a - b;
-  });
-  for (i = 0; i < CLOUD_COUNT; i++) {
-    clouds[i].velX = vels[i];
-  }
+  clouds.push(cloud);
+  // resort
+  sortClouds();
+  updateCloudSpeeds();
 };
 
 var createCloudCircle = function (x, y) {
@@ -69,9 +85,9 @@ var createCloudCircle = function (x, y) {
   };
 };
 
-var generateTriange = function () {
+var generateTriangle = function () {
   var h = (height / 4) + wiggle(30);
-  var base = (2 * height / 5) + wiggle(30);
+  var base = (2 * height / 5) + wiggle(130);
   var top   = {x: 0, y: -h};
   var left  = {x: -base/2 + wiggle(base/5), y: 0};
   var right = {x: base + left.x, y: 0};
@@ -192,7 +208,7 @@ var traceCircles = function (circles) {
 };
 
 var createCloud = function () {
-  var legs    = generateTriange();
+  var legs    = generateTriangle();
   var circles = generateCircles(legs);
   var points  = traceCircles(circles);
 
@@ -212,7 +228,15 @@ var createCloud = function () {
   }
 
   var x = Math.random() * width;
-  var y = height - Math.max(circles[0].radius, circles[1].radius) - 50;
+  var y = Math.random() * height;
+
+  if (y + bounds.top < 0) {
+    y = -bounds.top + 10;
+  }
+
+  if (y + bounds.bottom > height) {
+    y = height - bounds.bottom - 10;
+  }
 
   return {
     x:          x,
@@ -223,6 +247,14 @@ var createCloud = function () {
     points:     points,
     seed:       Math.round(Math.random() * 128)
   };
+};
+
+var cloudOutside = function (cloud) {
+  var bounds = cloud.bounds;
+  return (bounds.left   + cloud.x > width)  ||
+         (bounds.right  + cloud.x < 0)      ||
+         (bounds.bottom + cloud.y > height) ||
+         (bounds.top    + cloud.y < 0);
 };
 
 var render = function () {
@@ -287,7 +319,15 @@ var tick = function (timestamp) {
 var step = function (delta) {
   for (var i = 0; i < clouds.length; i++) {
     var cloud = clouds[i];
+    if (cloudOutside(cloud)) {
+      clouds.splice(i, 1);
+      i--;
+      continue;
+    }
     cloud.x += cloud.velX * delta / 1000;
+  }
+  if (clouds.length < CLOUD_COUNT) {
+    addCloud();
   }
 };
 
