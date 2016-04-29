@@ -49,9 +49,9 @@ var sortClouds = function () {
 
 // set the cloud speeds based on vertical position
 var updateCloudSpeeds = function () {
-  for (var i = 0; i < CLOUD_COUNT; i++) {
+  for (var i = 0; i < clouds.length; i++) {
     var cloud = clouds[i];
-    cloud.velX = 5 + 10 * (cloud.bounds.top + cloud.y)/height;
+    cloud.velX = 5 + 16 * (cloud.bounds.top + cloud.y)/height;
   }
 };
 
@@ -228,15 +228,7 @@ var createCloud = function () {
   }
 
   var x = Math.random() * width;
-  var y = Math.random() * height;
-
-  if (y + bounds.top < 0) {
-    y = -bounds.top + 10;
-  }
-
-  if (y + bounds.bottom > height) {
-    y = height - bounds.bottom - 10;
-  }
+  var y = (Math.random() * (height - bounds.bottom - 10)) - bounds.top + 10;
 
   return {
     x:          x,
@@ -253,26 +245,19 @@ var cloudOutside = function (cloud) {
   var bounds = cloud.bounds;
   return (bounds.left   + cloud.x > width)  ||
          (bounds.right  + cloud.x < 0)      ||
-         (bounds.bottom + cloud.y > height) ||
-         (bounds.top    + cloud.y < 0);
+         (bounds.top    + cloud.y > height) ||
+         (bounds.bottom + cloud.y < 0);
 };
 
 var render = function () {
   stats.begin();
   context.clearRect(0, 0, width, height);
 
-  context.fillStyle = 'white';
   var length = clouds.length;
   for (var i = 0; i < length; i++) {
     var cloud = clouds[i];
     context.save();
     context.translate(cloud.x, cloud.y);
-    for (var j = 0; j < cloud.circles.length; j++) {
-      var circle = cloud.circles[j];
-      context.beginPath();
-      context.arc(circle.x, circle.y, circle.radius, 0, TAU);
-      context.fill();
-    }
     seed = cloud.seed;
     context.beginPath();
     var lastPoint = cloud.points[0];
@@ -297,6 +282,7 @@ var render = function () {
       midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
       midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
       point.x, point.y);
+    context.fill();
     context.stroke();
     context.restore();
   }
@@ -344,6 +330,7 @@ window.onload = function() {
   context.canvas.height = window.innerHeight;
   width  = context.canvas.width;
   height = context.canvas.height;
+  context.fillStyle = 'white';
 
   setupClouds();
 
