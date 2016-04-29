@@ -227,7 +227,7 @@ var createCloud = function () {
     bounds.right  = Math.max(bounds.right,  points[i].x);
   }
 
-  var x = Math.random() * width;
+  var x = (Math.random() * width - bounds.left + bounds.right) + bounds.left;
   var y = (Math.random() * (height - bounds.bottom - 10)) - bounds.top + 10;
 
   return {
