@@ -2,11 +2,13 @@ var stats = new Stats();
 
 var TAU = Math.PI * 2;
 
-// how much to move the segments around
+// how much to wiggle the points around
+var POINT_WIGGLE = 10;
+// how much to wiggle the curves around
 var WIGGLE = 10;
 
 // the length of the segment in relation to the circle's radius
-var SEGMENT_FACTOR = 2;
+var SEGMENT_FACTOR = 3;
 
 var context;
 var width, height;
@@ -29,6 +31,10 @@ var rand = function() {
   seed = (a * seed + c) % m;
   // return float in (0, 1)
   return seed / m;
+};
+
+var wiggle = function (size) {
+  return Math.random() * size - size/2;
 };
 
 var setupClouds = function () {
@@ -74,8 +80,8 @@ var createCloud = function () {
   var i = 0;
   // do until we're back on the first circle and run out of segments
   while (i < segments || currentCircle != circles[0]) {
-    var x = Math.cos(i * increment) * currentCircle.radius;
-    var y = Math.sin(i * increment) * currentCircle.radius;
+    var x = Math.cos(i * increment) * currentCircle.radius + wiggle(POINT_WIGGLE);
+    var y = Math.sin(i * increment) * currentCircle.radius + wiggle(POINT_WIGGLE);
     var outside = true;
     for (var j = 0; j < circles.length; j++) {
       var candidate = circles[j];
@@ -143,8 +149,7 @@ var render = function () {
       context.bezierCurveTo(
         midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
         midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
-        point.x + (rand() * WIGGLE - WIGGLE/2), point.y + (rand() * WIGGLE - WIGGLE/2));
-      context.moveTo(point.x + (rand() * WIGGLE - WIGGLE/2), point.y + (rand() * WIGGLE - WIGGLE/2));
+        point.x, point.y);
       lastPoint = point;
     }
     point = cloud.points[0];
