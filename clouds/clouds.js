@@ -48,7 +48,7 @@ var createCloudCircle = function (x, y) {
   return {
     x: x,
     y: y,
-    radius: (height / 5) + wiggle(height/6),
+    radius: (height / 5) + wiggle(height/5),
     points: []
   };
 };
@@ -114,9 +114,20 @@ var generateCircles = function (legs) {
       var circle = createCloudCircle(x, y);
       circles.push(circle);
       leg.circles.push(circle);
-      total += circle.radius * 2;
+      total += circle.radius;
     }
   }
+
+  // make the first circle have the rightmost point
+  var rightMostPoint = circles[0].x + circles[0].radius;
+  for (var i = 1; i < circles.length; i++) {
+    var candidate = circles[i].x + circles[i].radius;
+    if (candidate > rightMostPoint) {
+      circles[0].x += candidate - rightMostPoint + 1;
+      rightMostPoint = circles[0].x + circles[0].radius;
+    }
+  }
+
   return circles;
 };
 
