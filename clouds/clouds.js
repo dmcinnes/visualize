@@ -303,6 +303,9 @@ var tick = function (timestamp) {
 };
 
 var step = function (delta) {
+  if (delta > 100) {
+    delta = 100;
+  }
   for (var i = 0; i < clouds.length; i++) {
     var cloud = clouds[i];
     if (cloudOutside(cloud)) {
