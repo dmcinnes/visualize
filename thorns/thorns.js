@@ -24,7 +24,9 @@ var Thorn = {
       width:  right  - x,
       height: bottom - y,
       right:  right,
-      bottom: bottom
+      bottom: bottom,
+      dirX:   this.dirX,
+      dirY:   this.dirY
     };
   }
 };
@@ -125,6 +127,8 @@ var step = function (delta) {
     var currentNodeBounds = node.bounds();
     var possibleCollisions = quadTree.retrieve(newNode.bounds());
     var bounds = newNode.bounds();
+    var newNodeVecX = newNode.x + newNode.dirX;
+    var newNodeVecY = newNode.y + newNode.dirY;
     for (var i = 0; i < possibleCollisions.length; i++) {
       var thorn = possibleCollisions[i];
       if (thorn === currentNodeBounds) {
@@ -132,15 +136,26 @@ var step = function (delta) {
         // collide with that
         continue;
       }
-      if ((thorn.right - bounds.x > 0)  && (bounds.right - thorn.x > 0) &&
-          (thorn.bottom - bounds.y > 0) && (bounds.bottom - thorn.y > 0)) {
-        // collision!
-        node[candidates[choice]] = -1; // mark as not available
-        // if this node is full, remove it from the leaf list
-        if (node.left && node.right) {
-          leaves.splice(leafChoice, 1);
+      var thornVecX = thorn.x + thorn.dirX;
+      var thornVecY = thorn.x + thorn.dirY;
+      var firstX = thorn.x - newNode.x;
+      var firstY = thorn.y - newNode.y;
+      // cross product
+      // this.x * other.y - this.y * other.x;
+      var denom = newNodeVecX * thornVecY - newNodeVecY * thornVecX;
+      if (denom !== 0) {
+        var t = (firstX * thornVecY - firstY * thornVecX) / denom;
+        var u = (firstX * newNodeVecY - firstY * newNodeVecX) / denom;
+        // all between 0 and 1
+        if (t < 1 && t > 0 && u < 1 && u > 0) {
+          // collision!
+          node[candidates[choice]] = -1; // mark as not available
+          // if this node is full, remove it from the leaf list
+          if (node.left && node.right) {
+            leaves.splice(leafChoice, 1);
+          }
+          return; // skip this node
         }
-        return; // skip this node
       }
     }
 
