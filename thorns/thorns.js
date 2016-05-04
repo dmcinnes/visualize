@@ -1,6 +1,6 @@
 var stats = new Stats();
 
-var ROOT_LENGTH = 20;
+var ROOT_LENGTH = 100;
 var TIME_BETWEEN_GROWTHS = 0;
 
 var width, height, quadTree;
@@ -56,6 +56,7 @@ var plantRoot = function () {
     root.dirX = 0;
     root.dirY = (root.y === 0) ? ROOT_LENGTH : -ROOT_LENGTH;
   }
+  root.length = ROOT_LENGTH;
   quadTree.insert(root.bounds());
 };
 
@@ -103,17 +104,23 @@ var step = function (delta) {
       // already have that one choose the other
       choice = (choice + 1) % 2;
     }
-    var newNode = Object.assign({
-      x:     node.x + node.dirX / 2,
-      y:     node.y + node.dirY / 2,
-      dirX:  node.dirY + (Math.random() * 10 - 5),
-      dirY: -node.dirX + (Math.random() * 10 - 5)
-    }, Thorn);
-    // flip for the right node
+    var dirX =  node.dirY + (Math.random() * 10 - 5);
+    var dirY = -node.dirX + (Math.random() * 10 - 5);
+    var unitNodeX = node.dirX/node.length;
+    var unitNodeY = node.dirY/node.length;
+    // flip for the 'right' node
     if (candidates[choice] === 'right') {
-      newNode.dirX = -newNode.dirX;
-      newNode.dirY = -newNode.dirY;
+      var dot = dirX * unitNodeX + dirY * unitNodeY;
+      dirX = 2 * dot * unitNodeX - dirX;
+      dirY = 2 * dot * unitNodeY - dirY;
     }
+    var newNode = Object.assign({
+      x:      node.x + unitNodeX * (0.25 + Math.random() * node.length/2),
+      y:      node.y + unitNodeY * (0.25 + Math.random() * node.length/2),
+      dirX:   dirX,
+      dirY:   dirY,
+      length: Math.sqrt(dirX*dirX + dirY*dirY)
+    }, Thorn);
 
     var currentNodeBounds = node.bounds();
     var possibleCollisions = quadTree.retrieve(newNode.bounds());
