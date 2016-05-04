@@ -1,7 +1,7 @@
 var stats = new Stats();
 
 var ROOT_LENGTH = 20;
-var TIME_BETWEEN_GROWTHS = 20;
+var TIME_BETWEEN_GROWTHS = 0;
 
 var width, height, quadTree;
 var stop = false;
@@ -31,6 +31,7 @@ var Thorn = {
 
 var root = Object.assign({}, Thorn);
 var leaves = [root];
+var thornList = [root];
 
 var randomInt = function (max) {
   return Math.round(Math.random() * max);
@@ -58,22 +59,15 @@ var plantRoot = function () {
   quadTree.insert(root.bounds());
 };
 
-var renderSubTree = function (node) {
-  context.moveTo(node.x, node.y);
-  context.lineTo(node.x + node.dirX, node.y + node.dirY);
-  if (node.left) {
-    renderSubTree(node.left);
-  }
-  if (node.right) {
-    renderSubTree(node.right);
-  }
-};
-
 var render = function () {
   stats.begin();
   context.clearRect(0, 0, width, height);
 
-  renderSubTree(root);
+  for (var i = 0; i < thornList.length; i++) {
+    var thorn = thornList[i];
+    context.moveTo(thorn.x, thorn.y);
+    context.lineTo(thorn.x + thorn.dirX, thorn.y + thorn.dirY);
+  }
   context.stroke();
 
   stats.end();
@@ -145,6 +139,8 @@ var step = function (delta) {
 
     quadTree.insert(bounds);
     node[candidates[choice]] = newNode;
+    thornList.push(newNode);
+
     // only put this node in the leaves list if its end is in the window
     if (!pointOutside(newNode.x + newNode.dirX, newNode.y + newNode.dirY)) {
       leaves.push(newNode);
