@@ -26,8 +26,27 @@ var Thorn = {
       right:  right,
       bottom: bottom,
       dirX:   this.dirX,
-      dirY:   this.dirY
+      dirY:   this.dirY,
+      thorn:  this
     };
+  },
+
+  normals: function () {
+    if (this._normals) {
+      return this._normals;
+    }
+    var points = this.points;
+    var length1 = Math.sqrt(points[0] * points[0] + points[1] * points[1]);
+    var length2 = Math.sqrt(points[2] * points[2] + points[3] * points[3]);
+    var length3 = Math.sqrt(points[4] * points[4] + points[5] * points[5]);
+    return this._normals = [
+       points[1] / length1,
+      -points[0] / length1,
+       points[3] / length2,
+      -points[2] / length2,
+       points[5] / length3,
+      -points[4] / length3
+    ];
   }
 };
 
@@ -136,8 +155,10 @@ var step = function (delta) {
       // already have that one choose the other
       choice = (choice + 1) % 2;
     }
-    var dirX =  node.dirY + (Math.random() * 10 - 5);
-    var dirY = -node.dirX + (Math.random() * 10 - 5);
+    // var dirX =  node.dirY + (Math.random() * 10 - 5);
+    // var dirY = -node.dirX + (Math.random() * 10 - 5);
+    var dirX =  node.dirY * 0.8;
+    var dirY = -node.dirX * 0.8;
     var unitNodeX = node.dirX/node.length;
     var unitNodeY = node.dirY/node.length;
     // flip for the 'right' node
@@ -170,35 +191,22 @@ var step = function (delta) {
     var currentNodeBounds = node.bounds();
     var possibleCollisions = quadTree.retrieve(newNode.bounds());
     var bounds = newNode.bounds();
-    var newNodeVecX = newNode.x + newNode.dirX;
-    var newNodeVecY = newNode.y + newNode.dirY;
     for (var i = 0; i < possibleCollisions.length; i++) {
-      var thorn = possibleCollisions[i];
-      if (thorn === currentNodeBounds) {
-        // ignore the thorn from where we're branching, we're definitely going to
-        // collide with that
+      var candidateThorn = possibleCollisions[i].thorn;
+      if (candidateThorn === node ||
+          candidateThorn === node.left ||
+          candidateThorn === node.right) {
+        // ignore the existing thorns from where we're branching, we're definitely going to
+        // collide with those
         continue;
       }
-      var thornVecX = thorn.x + thorn.dirX;
-      var thornVecY = thorn.x + thorn.dirY;
-      var firstX = thorn.x - newNode.x;
-      var firstY = thorn.y - newNode.y;
-      // cross product
-      // this.x * other.y - this.y * other.x;
-      var denom = newNodeVecX * thornVecY - newNodeVecY * thornVecX;
-      if (denom !== 0) {
-        var t = (firstX * thornVecY - firstY * thornVecX) / denom;
-        var u = (firstX * newNodeVecY - firstY * newNodeVecX) / denom;
-        // all between 0 and 1
-        if (t < 1 && t > 0 && u < 1 && u > 0) {
-          // collision!
-          node[candidates[choice]] = -1; // mark as not available
-          // if this node is full, remove it from the leaf list
-          if (node.left && node.right) {
-            leaves.splice(leafChoice, 1);
-          }
-          return; // skip this node
+      if (checkCollision(newNode, candidateThorn)) {
+        node[candidates[choice]] = -1; // mark as not available
+        // if this node is full, remove it from the leaf list
+        if (node.left && node.right) {
+          leaves.splice(leafChoice, 1);
         }
+        return; // skip this node
       }
     }
 
@@ -217,6 +225,42 @@ var step = function (delta) {
     // we have a new growth, reset the timer
     timeSinceLastGrowth = 0;
   }
+};
+
+var lineProjection = function (normalX, normalY, points) {
+  var min, max, count, dot;
+
+  min = Number.MAX_VALUE;
+  max = -Number.MAX_VALUE;
+  count = points.length;
+  for (var j = 0; j < count; j = j + 2) {
+    var dot = normalX * points[j] + normalY * points[j + 1];
+    if (dot < min) {
+      min = dot;
+    }
+    if (dot > max) {
+      max = dot;
+    }
+  }
+  return {
+    min: min,
+    max: max
+  };
+};
+
+// using Separating Axis Theorem
+var checkCollision = function (objA, objB) {
+  var normals = objA.normals().concat(objB.normals());
+
+  for (i = 0; i < normals.length; i = i + 2) {
+    var we   = lineProjection(normals[i], normals[i + 1], objA.points);
+    var they = lineProjection(normals[i], normals[i + 1], objB.points);
+
+    if (we.max < they.min || we.min > they.max) {
+      return false; // no collision!
+    }
+  }
+  return true;
 };
 
 window.onload = function() {
