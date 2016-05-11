@@ -40,12 +40,12 @@ var Thorn = {
     var length2 = Math.sqrt(points[2] * points[2] + points[3] * points[3]);
     var length3 = Math.sqrt(points[4] * points[4] + points[5] * points[5]);
     return this._normals = [
-       points[1] / length1,
-      -points[0] / length1,
-       points[3] / length2,
-      -points[2] / length2,
-       points[5] / length3,
-      -points[4] / length3
+       (points[1] - points[5]) / length1,
+      -(points[0] - points[4]) / length1,
+       (points[3] - points[1]) / length2,
+      -(points[2] - points[0]) / length2,
+       (points[5] - points[3]) / length3,
+      -(points[4] - points[2]) / length3
     ];
   }
 };
