@@ -47,17 +47,43 @@ var pointOutside = function (x, y) {
 };
 
 var plantRoot = function () {
+  var startX, startY, endX, endY;
   if (Math.random() < 0.5) {
-    root.x = (Math.random() < 0.5) ? 0 : width;
-    root.y = Math.round(Math.random() * height);
-    root.dirX = (root.x === 0) ? ROOT_LENGTH : -ROOT_LENGTH;
+    startY = Math.round(Math.random() * height);
+    if (Math.random() < 0.5) {
+      startX = 0;
+      endY = startY - (ROOT_LENGTH / 10);
+    } else {
+      startX = width;
+      endY = startY + (ROOT_LENGTH / 10);
+    }
+    endX = startX;
+    root.dirX = (startX === 0) ? ROOT_LENGTH : -ROOT_LENGTH;
     root.dirY = 0;
   } else {
-    root.x = Math.round(Math.random() * width);
-    root.y = (Math.random() < 0.5) ? 0 : height;
+    startX = Math.round(Math.random() * width);
+    if (Math.random() < 0.5) {
+      startY = 0;
+      endX = startX + (ROOT_LENGTH / 10);
+    } else {
+      startY = height;
+      endX = startX - (ROOT_LENGTH / 10);
+    }
+    endY = startY;
     root.dirX = 0;
-    root.dirY = (root.y === 0) ? ROOT_LENGTH : -ROOT_LENGTH;
+    root.dirY = (startY === 0) ? ROOT_LENGTH : -ROOT_LENGTH;
   }
+  var points = [
+    startX,
+    startY,
+    endX,
+    endY,
+    startX + root.dirX,
+    startY + root.dirY
+  ];
+  root.centerX = (points[0] + points[2] + points[4]) / 3;
+  root.centerY = (points[1] + points[3] + points[5]) / 3;
+  root.points = points;
   root.length = ROOT_LENGTH;
   quadTree.insert(root.bounds());
 };
@@ -68,10 +94,14 @@ var render = function () {
 
   for (var i = 0; i < thornList.length; i++) {
     var thorn = thornList[i];
-    context.moveTo(thorn.x, thorn.y);
-    context.lineTo(thorn.x + thorn.dirX, thorn.y + thorn.dirY);
+    context.beginPath();
+    context.moveTo(thorn.points[0], thorn.points[1]);
+    for (var j = 2; j < thorn.points.length; j = j + 2) {
+      context.lineTo(thorn.points[j], thorn.points[j + 1]);
+    }
+    context.closePath();
+    context.fill();
   }
-  context.stroke();
 
   stats.end();
 };
@@ -116,9 +146,22 @@ var step = function (delta) {
       dirX = 2 * dot * unitNodeX - dirX;
       dirY = 2 * dot * unitNodeY - dirY;
     }
+    var startX = node.centerX; // + unitNodeX * (0.25 + Math.random() * node.length/2);
+    var startY = node.centerY; // + unitNodeY * (0.25 + Math.random() * node.length/2);
+    var points = [
+      startX,
+      startY,
+      startX + unitNodeX * node.length * 0.10,
+      startY + unitNodeY * node.length * 0.10,
+      startX + dirX,
+      startY + dirY
+    ];
+    var centerX = (points[0] + points[2] + points[4]) / 3;
+    var centerY = (points[1] + points[3] + points[5]) / 3;
     var newNode = Object.assign({
-      x:      node.x + unitNodeX * (0.25 + Math.random() * node.length/2),
-      y:      node.y + unitNodeY * (0.25 + Math.random() * node.length/2),
+      points:  points,
+      centerX: centerX,
+      centerY: centerY,
       dirX:   dirX,
       dirY:   dirY,
       length: Math.sqrt(dirX*dirX + dirY*dirY)
@@ -132,7 +175,7 @@ var step = function (delta) {
     for (var i = 0; i < possibleCollisions.length; i++) {
       var thorn = possibleCollisions[i];
       if (thorn === currentNodeBounds) {
-        // ignore the thorn we're branching off of, we're definitely going to
+        // ignore the thorn from where we're branching, we're definitely going to
         // collide with that
         continue;
       }
