@@ -155,10 +155,8 @@ var step = function (delta) {
       // already have that one choose the other
       choice = (choice + 1) % 2;
     }
-    // var dirX =  node.dirY + (Math.random() * 10 - 5);
-    // var dirY = -node.dirX + (Math.random() * 10 - 5);
-    var dirX =  node.dirY * 0.8;
-    var dirY = -node.dirX * 0.8;
+    var dirX =  node.dirY + ( (Math.random() * node.length/4) - (node.length/2) );
+    var dirY = -node.dirX + ( (Math.random() * node.length/4) - (node.length/2) );
     var unitNodeX = node.dirX/node.length;
     var unitNodeY = node.dirY/node.length;
     // flip for the 'right' node
@@ -167,8 +165,8 @@ var step = function (delta) {
       dirX = 2 * dot * unitNodeX - dirX;
       dirY = 2 * dot * unitNodeY - dirY;
     }
-    var startX = node.centerX; // + unitNodeX * (0.25 + Math.random() * node.length/2);
-    var startY = node.centerY; // + unitNodeY * (0.25 + Math.random() * node.length/2);
+    var startX = node.centerX + unitNodeX * ( (Math.random() * node.length/6) - (node.length/3) );
+    var startY = node.centerY + unitNodeY * ( (Math.random() * node.length/6) - (node.length/3) );
     var points = [
       startX,
       startY,
@@ -201,7 +199,7 @@ var step = function (delta) {
         continue;
       }
       if (checkCollision(newNode, candidateThorn)) {
-        node[candidates[choice]] = -1; // mark as not available
+        // node[candidates[choice]] = -1; // mark as not available
         // if this node is full, remove it from the leaf list
         if (node.left && node.right) {
           leaves.splice(leafChoice, 1);
