@@ -1,9 +1,10 @@
 var stats = new Stats();
 
 var ROOT_LENGTH = 100;
+var MAX_LENGTH = 100;
 var TIME_BETWEEN_GROWTHS = 0;
 
-var width, height, quadTree;
+var width, height;
 var stop = false;
 
 var Thorn = {
@@ -30,27 +31,15 @@ var Thorn = {
       thorn:  this
     };
   },
-
-  normals: function () {
-    if (this._normals) {
-      return this._normals;
-    }
-    var points = this.points;
-    var length1 = Math.sqrt(points[0] * points[0] + points[1] * points[1]);
-    var length2 = Math.sqrt(points[2] * points[2] + points[3] * points[3]);
-    var length3 = Math.sqrt(points[4] * points[4] + points[5] * points[5]);
-    return this._normals = [
-       (points[1] - points[5]) / length1,
-      -(points[0] - points[4]) / length1,
-       (points[3] - points[1]) / length2,
-      -(points[2] - points[0]) / length2,
-       (points[5] - points[3]) / length3,
-      -(points[4] - points[2]) / length3
-    ];
+  grow: function () {
+    this.length++
+    this.points[4] = this.dirX * this.length;
+    this.points[5] = this.dirY * this.length;
   }
 };
 
 var root = Object.assign({}, Thorn);
+var growers = [];
 var leaves = [root];
 var thornList = [root];
 
@@ -104,7 +93,6 @@ var plantRoot = function () {
   root.centerY = (points[1] + points[3] + points[5]) / 3;
   root.points = points;
   root.length = ROOT_LENGTH;
-  quadTree.insert(root.bounds());
 };
 
 var render = function () {
@@ -155,15 +143,13 @@ var step = function (delta) {
       // already have that one choose the other
       choice = (choice + 1) % 2;
     }
-    var dirX =  node.dirY + ( (Math.random() * node.length/4) - (node.length/2) );
-    var dirY = -node.dirX + ( (Math.random() * node.length/4) - (node.length/2) );
     var unitNodeX = node.dirX/node.length;
     var unitNodeY = node.dirY/node.length;
     // flip for the 'right' node
     if (candidates[choice] === 'right') {
-      var dot = dirX * unitNodeX + dirY * unitNodeY;
-      dirX = 2 * dot * unitNodeX - dirX;
-      dirY = 2 * dot * unitNodeY - dirY;
+      var dot = unitNodeX * unitNodeX + unitNodeY * unitNodeY;
+      unitNodeX = 2 * dot * unitNodeX - unitNodeX;
+      unitNodeY = 2 * dot * unitNodeY - unitNodeY;
     }
     var startX = node.centerX + unitNodeX * ( (Math.random() * node.length/6) - (node.length/3) );
     var startY = node.centerY + unitNodeY * ( (Math.random() * node.length/6) - (node.length/3) );
@@ -172,8 +158,8 @@ var step = function (delta) {
       startY,
       startX + unitNodeX * node.length * 0.10,
       startY + unitNodeY * node.length * 0.10,
-      startX + dirX,
-      startY + dirY
+      startX + unitNodeX,
+      startY + unitNodeY
     ];
     var centerX = (points[0] + points[2] + points[4]) / 3;
     var centerY = (points[1] + points[3] + points[5]) / 3;
@@ -181,40 +167,24 @@ var step = function (delta) {
       points:  points,
       centerX: centerX,
       centerY: centerY,
-      dirX:   dirX,
-      dirY:   dirY,
-      length: Math.sqrt(dirX*dirX + dirY*dirY)
+      dirX:   unitNodeX,
+      dirY:   unitNodeY,
+      length: 1
     }, Thorn);
 
-    var currentNodeBounds = node.bounds();
-    var possibleCollisions = quadTree.retrieve(newNode.bounds());
-    var bounds = newNode.bounds();
-    for (var i = 0; i < possibleCollisions.length; i++) {
-      var candidateThorn = possibleCollisions[i].thorn;
-      if (candidateThorn === node ||
-          candidateThorn === node.left ||
-          candidateThorn === node.right) {
-        // ignore the existing thorns from where we're branching, we're definitely going to
-        // collide with those
-        continue;
-      }
-      if (checkCollision(newNode, candidateThorn)) {
-        // node[candidates[choice]] = -1; // mark as not available
-        // if this node is full, remove it from the leaf list
-        if (node.left && node.right) {
-          leaves.splice(leafChoice, 1);
-        }
-        return; // skip this node
-      }
-    }
-
-    quadTree.insert(bounds);
     node[candidates[choice]] = newNode;
     thornList.push(newNode);
 
+    if (pointTaken(startX + unitNodeX, startY + unitNodeY)) {
+      if (node.left && node.right) {
+        leaves.splice(leafChoice, 1);
+      }
+      return;
+    }
+
     // only put this node in the leaves list if its end is in the window
     if (!pointOutside(newNode.x + newNode.dirX, newNode.y + newNode.dirY)) {
-      leaves.push(newNode);
+      growers.push(newNode);
     }
     // if this node is full, remove it from the leaf list
     if (node.left && node.right) {
@@ -223,42 +193,21 @@ var step = function (delta) {
     // we have a new growth, reset the timer
     timeSinceLastGrowth = 0;
   }
-};
 
-var lineProjection = function (normalX, normalY, points) {
-  var min, max, count, dot;
-
-  min = Number.MAX_VALUE;
-  max = -Number.MAX_VALUE;
-  count = points.length;
-  for (var j = 0; j < count; j = j + 2) {
-    var dot = normalX * points[j] + normalY * points[j + 1];
-    if (dot < min) {
-      min = dot;
-    }
-    if (dot > max) {
-      max = dot;
+  for (var i = 0; i < growers.length; i++) {
+    var thorn = growers[i];
+    if (thorn.length > MAX_LENGTH) {
+      growers.splice(i, 1);
+      i--;
+    } else {
+      growers.grow();
     }
   }
-  return {
-    min: min,
-    max: max
-  };
 };
 
-// using Separating Axis Theorem
-var checkCollision = function (objA, objB) {
-  var normals = objA.normals().concat(objB.normals());
-
-  for (i = 0; i < normals.length; i = i + 2) {
-    var we   = lineProjection(normals[i], normals[i + 1], objA.points);
-    var they = lineProjection(normals[i], normals[i + 1], objB.points);
-
-    if (we.max < they.min || we.min > they.max) {
-      return false; // no collision!
-    }
-  }
-  return true;
+var pointTaken = function (x, y) {
+  var pixel = context.getImageData(x, y, 1, 1);
+  return (pixel.data[3] > 0); // A part of RGBA
 };
 
 window.onload = function() {
@@ -274,13 +223,6 @@ window.onload = function() {
   context.canvas.height = window.innerHeight;
   width  = context.canvas.width;
   height = context.canvas.height;
-
-  quadTree = new Quadtree({
-    x: 0,
-    y: 0,
-    width:  width,
-    height: height
-  });
 
   plantRoot();
 
