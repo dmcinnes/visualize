@@ -1,8 +1,7 @@
 var stats = new Stats();
 
-var ROOT_LENGTH = 100;
-var MAX_LENGTH = 100;
-var TIME_BETWEEN_GROWTHS = 0;
+var MAX_THORN_SIZE = 100;
+var TIME_BETWEEN_GROWTHS = 10;
 
 var width, height;
 var stop = false;
@@ -32,15 +31,15 @@ var Thorn = {
     };
   },
   grow: function () {
-    this.length++
-    this.points[4] = this.dirX * this.length;
-    this.points[5] = this.dirY * this.length;
+    this.size++
+    this.points[4] = this.points[0] + (this.dirX * this.size);
+    this.points[5] = this.points[1] + (this.dirY * this.size);
   }
 };
 
 var root = Object.assign({}, Thorn);
-var growers = [];
-var leaves = [root];
+var growers = [root];
+var leaves = [];
 var thornList = [root];
 
 var randomInt = function (max) {
@@ -60,26 +59,26 @@ var plantRoot = function () {
     startY = Math.round(Math.random() * height);
     if (Math.random() < 0.5) {
       startX = 0;
-      endY = startY - (ROOT_LENGTH / 10);
+      endY = startY - 10;
     } else {
       startX = width;
-      endY = startY + (ROOT_LENGTH / 10);
+      endY = startY + 10;
     }
     endX = startX;
-    root.dirX = (startX === 0) ? ROOT_LENGTH : -ROOT_LENGTH;
+    root.dirX = (startX === 0) ? 1 : -1;
     root.dirY = 0;
   } else {
     startX = Math.round(Math.random() * width);
     if (Math.random() < 0.5) {
       startY = 0;
-      endX = startX + (ROOT_LENGTH / 10);
+      endX = startX + 10;
     } else {
       startY = height;
-      endX = startX - (ROOT_LENGTH / 10);
+      endX = startX - 10;
     }
     endY = startY;
     root.dirX = 0;
-    root.dirY = (startY === 0) ? ROOT_LENGTH : -ROOT_LENGTH;
+    root.dirY = (startY === 0) ? 1 : -1;
   }
   var points = [
     startX,
@@ -89,10 +88,8 @@ var plantRoot = function () {
     startX + root.dirX,
     startY + root.dirY
   ];
-  root.centerX = (points[0] + points[2] + points[4]) / 3;
-  root.centerY = (points[1] + points[3] + points[5]) / 3;
   root.points = points;
-  root.length = ROOT_LENGTH;
+  root.size = 1;
 };
 
 var render = function () {
@@ -131,7 +128,19 @@ var timeSinceLastGrowth = 0;
 
 var step = function (delta) {
   timeSinceLastGrowth += delta;
+
   if (timeSinceLastGrowth > TIME_BETWEEN_GROWTHS) {
+    for (var i = 0; i < growers.length; i++) {
+      var thorn = growers[i];
+      if (thorn.size > MAX_THORN_SIZE) {
+        growers.splice(i, 1);
+        i--;
+        leaves.push(thorn);
+      } else {
+        thorn.grow();
+      }
+    }
+
     if (leaves.length === 0) {
       return;
     }
@@ -143,33 +152,35 @@ var step = function (delta) {
       // already have that one choose the other
       choice = (choice + 1) % 2;
     }
-    var unitNodeX = node.dirX/node.length;
-    var unitNodeY = node.dirY/node.length;
+    // add some wiggle to the normal of the thorn we're branching from
+    var dirX =  node.dirY + ( (Math.random() * node.size/4) - (node.size/2) );
+    var dirY = -node.dirX + ( (Math.random() * node.size/4) - (node.size/2) );
+    var size = Math.sqrt(dirX * dirX + dirY * dirY);
+    var unitNodeX = dirX/size;
+    var unitNodeY = dirY/size;
     // flip for the 'right' node
     if (candidates[choice] === 'right') {
-      var dot = unitNodeX * unitNodeX + unitNodeY * unitNodeY;
-      unitNodeX = 2 * dot * unitNodeX - unitNodeX;
-      unitNodeY = 2 * dot * unitNodeY - unitNodeY;
+      var dot = node.dirX * unitNodeX + node.dirY * unitNodeY;
+      unitNodeX = 2 * dot * unitNodeX - node.dirX;
+      unitNodeY = 2 * dot * unitNodeY - node.dirY;
     }
-    var startX = node.centerX + unitNodeX * ( (Math.random() * node.length/6) - (node.length/3) );
-    var startY = node.centerY + unitNodeY * ( (Math.random() * node.length/6) - (node.length/3) );
+    var centerX = (node.points[0] + node.points[2] + node.points[4]) / 3;
+    var centerY = (node.points[1] + node.points[3] + node.points[5]) / 3;
+    var startX = centerX + unitNodeX * ( (Math.random() * node.size/6) - (node.size/3) );
+    var startY = centerY + unitNodeY * ( (Math.random() * node.size/6) - (node.size/3) );
     var points = [
       startX,
       startY,
-      startX + unitNodeX * node.length * 0.10,
-      startY + unitNodeY * node.length * 0.10,
+      startX + unitNodeX * node.size * 0.10,
+      startY + unitNodeY * node.size * 0.10,
       startX + unitNodeX,
       startY + unitNodeY
     ];
-    var centerX = (points[0] + points[2] + points[4]) / 3;
-    var centerY = (points[1] + points[3] + points[5]) / 3;
     var newNode = Object.assign({
       points:  points,
-      centerX: centerX,
-      centerY: centerY,
-      dirX:   unitNodeX,
-      dirY:   unitNodeY,
-      length: 1
+      dirX:    unitNodeX,
+      dirY:    unitNodeY,
+      size: 1
     }, Thorn);
 
     node[candidates[choice]] = newNode;
@@ -192,16 +203,6 @@ var step = function (delta) {
     }
     // we have a new growth, reset the timer
     timeSinceLastGrowth = 0;
-  }
-
-  for (var i = 0; i < growers.length; i++) {
-    var thorn = growers[i];
-    if (thorn.length > MAX_LENGTH) {
-      growers.splice(i, 1);
-      i--;
-    } else {
-      growers.grow();
-    }
   }
 };
 
