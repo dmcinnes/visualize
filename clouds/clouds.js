@@ -230,7 +230,7 @@ var createCloud = function () {
   var x = (Math.random() * width - bounds.left + bounds.right) + bounds.left;
   var y = (Math.random() * (height - bounds.bottom - 10)) - bounds.top + 10;
 
-  return {
+  var cloud = {
     x:          x,
     y:          y,
     bounds:     bounds,
@@ -239,6 +239,10 @@ var createCloud = function () {
     points:     points,
     seed:       Math.round(Math.random() * 128)
   };
+
+  renderCloud(cloud);
+
+  return cloud;
 };
 
 var cloudOutside = function (cloud) {
@@ -249,6 +253,48 @@ var cloudOutside = function (cloud) {
          (bounds.bottom + cloud.y < 0);
 };
 
+// render the cloud to a cavnas for reuse
+var renderCloud = function (cloud) {
+  var bounds = cloud.bounds;
+  var cloudCanvas = document.createElement('canvas');
+  cloudCanvas.width  = bounds.right - bounds.left + 40;
+  cloudCanvas.height = bounds.bottom - bounds.top + 40;
+  var cloudContext = cloudCanvas.getContext('2d');
+  cloudContext.clearRect(0, 0, width, height);
+  cloudContext.fillStyle = 'white';
+  cloudContext.save();
+  cloudContext.translate(-bounds.left, -bounds.top);
+  cloudContext.translate(20, 20); // extra for wiggle
+  seed = cloud.seed;
+  cloudContext.beginPath();
+  var lastPoint = cloud.points[0];
+  cloudContext.moveTo(lastPoint.x, lastPoint.y);
+  for (var j = 1; j < cloud.points.length; j++) {
+    var point = cloud.points[j];
+    if (point.cusp) {
+      continue;
+    }
+    var midpointX = (point.x + lastPoint.x)/2;
+    var midpointY = (point.y + lastPoint.y)/2;
+    cloudContext.bezierCurveTo(
+      midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
+      midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
+      point.x, point.y);
+    lastPoint = point;
+  }
+  point = cloud.points[0];
+  midpointX = (point.x + lastPoint.x)/2;
+  midpointY = (point.y + lastPoint.y)/2;
+  cloudContext.bezierCurveTo(
+    midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
+    midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
+    point.x, point.y);
+  cloudContext.fill();
+  cloudContext.stroke();
+  cloudContext.restore();
+  cloud.canvas = cloudCanvas;
+};
+
 var render = function () {
   stats.begin();
   context.clearRect(0, 0, width, height);
@@ -257,33 +303,8 @@ var render = function () {
   for (var i = 0; i < length; i++) {
     var cloud = clouds[i];
     context.save();
-    context.translate(cloud.x, cloud.y);
-    seed = cloud.seed;
-    context.beginPath();
-    var lastPoint = cloud.points[0];
-    context.moveTo(lastPoint.x, lastPoint.y);
-    for (var j = 1; j < cloud.points.length; j++) {
-      var point = cloud.points[j];
-      if (point.cusp) {
-        continue;
-      }
-      var midpointX = (point.x + lastPoint.x)/2;
-      var midpointY = (point.y + lastPoint.y)/2;
-      context.bezierCurveTo(
-        midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
-        midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
-        point.x, point.y);
-      lastPoint = point;
-    }
-    point = cloud.points[0];
-    midpointX = (point.x + lastPoint.x)/2;
-    midpointY = (point.y + lastPoint.y)/2;
-    context.bezierCurveTo(
-      midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
-      midpointX + (rand() * WIGGLE - WIGGLE/2), midpointY + (rand() * WIGGLE - WIGGLE/2),
-      point.x, point.y);
-    context.fill();
-    context.stroke();
+    context.translate(cloud.bounds.left, cloud.bounds.top);
+    context.drawImage(cloud.canvas, cloud.x, cloud.y);
     context.restore();
   }
 
@@ -322,18 +343,17 @@ var step = function (delta) {
 
 window.onload = function() {
   var canvas = document.getElementById('canvas');
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  width  = canvas.width;
+  height = canvas.height;
+
+  context = canvas.getContext('2d');
 
   if (document.location.search === "?fps=1") {
     stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
     document.body.appendChild(stats.dom);
   }
-
-  context = canvas.getContext('2d');
-  context.canvas.width  = window.innerWidth;
-  context.canvas.height = window.innerHeight;
-  width  = context.canvas.width;
-  height = context.canvas.height;
-  context.fillStyle = 'white';
 
   setupClouds();
 
