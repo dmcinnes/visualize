@@ -13,6 +13,9 @@ var WIGGLE = 10;
 // the length of the segment in relation to the circle's radius
 var SEGMENT_FACTOR = 3;
 
+// extra boarder around the cloud canvas to make sure the wiggle is included.
+var CLOUD_CANVAS_BOARDER = 20;
+
 var context;
 var width, height;
 
@@ -257,8 +260,8 @@ var cloudOutside = function (cloud) {
 var renderCloud = function (cloud) {
   var bounds = cloud.bounds;
   var cloudCanvas = document.createElement('canvas');
-  cloudCanvas.width  = bounds.right - bounds.left + 40;
-  cloudCanvas.height = bounds.bottom - bounds.top + 40;
+  cloudCanvas.width  = bounds.right - bounds.left + CLOUD_CANVAS_BOARDER * 2;
+  cloudCanvas.height = bounds.bottom - bounds.top + CLOUD_CANVAS_BOARDER * 2;
   var cloudContext = cloudCanvas.getContext('2d');
   cloudContext.clearRect(0, 0, width, height);
   cloudContext.fillStyle = 'white';
@@ -303,7 +306,9 @@ var render = function () {
   for (var i = 0; i < length; i++) {
     var cloud = clouds[i];
     context.save();
-    context.translate(cloud.bounds.left, cloud.bounds.top);
+    context.translate(
+      cloud.bounds.left - CLOUD_CANVAS_BOARDER,
+      cloud.bounds.top  - CLOUD_CANVAS_BOARDER);
     context.drawImage(cloud.canvas, cloud.x, cloud.y);
     context.restore();
   }
